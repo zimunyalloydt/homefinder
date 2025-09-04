@@ -1,0 +1,154 @@
+/* ===== Balenciaga-inspired CSS for View Ratings Page ===== */
+:root {
+    --black: #e98440;
+    --white: #FFFFFF;
+    --gray-dark: #1A1A1A;
+    --gray-medium: #333333;
+    --gray-light: #D9D9D9;
+    --accent: #FF3A00; /* Balenciaga orange-red accent */
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+
+body {
+    background-color: #7a6041;
+    color: var(--white);
+    line-height: 1.6;
+    font-weight: 300;
+    padding: 2rem;
+}
+
+/* Page heading */
+h2 {
+    font-size: 1.8rem;
+    font-weight: 400;
+    letter-spacing: 1px;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    color: var(--white);
+}
+
+/* Back button */
+.back-btn {
+    display: inline-block;
+    padding: 0.8rem 1.5rem;
+    background-color: var(--black);
+    color: var(--white);
+    border: 1px solid var(--gray-medium);
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.8rem;
+    transition: all 0.3s;
+    margin-bottom: 2rem;
+}
+
+.back-btn:hover {
+    background-color: var(--accent);
+    border-color: var(--accent);
+}
+
+/* Ratings grid */
+.ratings-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+/* Each rating card */
+.rating-card {
+    background-color: var(--gray-dark);
+    border: 1px solid var(--gray-medium);
+    padding: 1.5rem;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.rating-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(255, 58, 0, 0.1);
+}
+
+/* Property title */
+.rating-card h3 {
+    margin-top: 0;
+    font-size: 1.2rem;
+    font-weight: 400;
+    color: var(--white);
+    margin-bottom: 1rem;
+    letter-spacing: 0.5px;
+}
+
+/* Stars */
+.stars {
+    font-size: 1rem;
+    color: var(--accent);
+    margin: 0.5rem 0;
+}
+
+/* Review text */
+.review {
+    font-style: italic;
+    color: var(--gray-light);
+    margin: 1rem 0;
+    line-height: 1.5;
+    border-left: 2px solid var(--accent);
+    padding-left: 1rem;
+}
+
+/* Date */
+.date {
+    font-size: 0.8rem;
+    color: var(--gray-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* No ratings message */
+.no-ratings {
+    font-size: 1.1rem;
+    color: var(--gray-light);
+    margin-top: 2rem;
+    text-align: center;
+    padding: 2rem;
+    background-color: var(--gray-dark);
+    border: 1px solid var(--gray-medium);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    body {
+        padding: 1.5rem;
+    }
+    
+    .ratings-container {
+        grid-template-columns: 1fr;
+    }
+    
+    h2 {
+        font-size: 1.5rem;
+    }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--black);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--gray-medium);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
+}

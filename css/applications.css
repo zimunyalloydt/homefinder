@@ -1,0 +1,233 @@
+/* ===== Balenciaga-inspired CSS for Landlord Applications Page ===== */
+:root {
+    --black: #4e9aeb;
+    --white: #FFFFFF;
+    --gray-dark: #1A1A1A;
+    --gray-medium: #333333;
+    --gray-light: #D9D9D9;
+    --accent: #FF3A00; /* Balenciaga orange-red accent */
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+
+body {
+    background-color: #063970;
+    color: var(--white);
+    line-height: 1.6;
+    font-weight: 300;
+    padding: 2rem;
+}
+
+/* Page heading */
+h2 {
+    font-size: 1.8rem;
+    font-weight: 400;
+    letter-spacing: 1px;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    color: var(--white);
+}
+
+/* Navigation Links */
+.nav-links {
+    margin-bottom: 2rem;
+}
+
+.nav-links a {
+    display: inline-block;
+    padding: 0.8rem 1.5rem;
+    background-color: var(--black);
+    color: var(--white);
+    border: 1px solid var(--gray-medium);
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.8rem;
+    transition: all 0.3s;
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Dashboard Link */
+.nav-links a[href*="landlord_dashboard.php"] {
+    border-color: #27ae60;
+}
+
+.nav-links a[href*="landlord_dashboard.php"]:hover {
+    background-color: #27ae60;
+    border-color: #27ae60;
+}
+
+/* Logout Link */
+.nav-links a[href*="logout.php"] {
+    border-color: #e74c3c;
+}
+
+.nav-links a[href*="logout.php"]:hover {
+    background-color: #e74c3c;
+    border-color: #e74c3c;
+}
+
+/* Message Styling */
+p {
+    margin: 1rem 0;
+    font-size: 0.9rem;
+    color: var(--gray-light);
+}
+
+/* Table Styling */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: var(--gray-dark);
+    border: 1px solid var(--gray-medium);
+    margin-top: 1.5rem;
+}
+
+th, td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--gray-medium);
+}
+
+th {
+    background-color: var(--black);
+    color: var(--white);
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.8rem;
+}
+
+tr:hover {
+    background-color: var(--gray-medium);
+}
+
+/* Badge Styles */
+.badge-pending {
+    background-color: var(--accent);
+    color: var(--white);
+    padding: 0.3rem 0.8rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-block;
+}
+
+.badge-approved {
+    background-color: #27ae60;
+    color: var(--white);
+    padding: 0.3rem 0.8rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-block;
+}
+
+.badge-rejected {
+    background-color: #e74c3c;
+    color: var(--white);
+    padding: 0.3rem 0.8rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-block;
+}
+
+/* Form Buttons */
+form {
+    display: inline;
+}
+
+form button {
+    background-color: var(--black);
+    color: var(--white);
+    border: 1px solid var(--gray-medium);
+    padding: 0.5rem 1rem;
+    margin: 0.2rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+form button:hover {
+    background-color: var(--accent);
+    border-color: var(--accent);
+}
+
+/* Rating Form */
+form textarea {
+    width: 100%;
+    height: 80px;
+    margin-top: 0.5rem;
+    padding: 0.8rem;
+    background-color: var(--black);
+    border: 1px solid var(--gray-medium);
+    color: var(--white);
+    resize: vertical;
+    font-size: 0.9rem;
+}
+
+form textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+form input[type="number"] {
+    width: 60px;
+    padding: 0.5rem;
+    background-color: var(--black);
+    border: 1px solid var(--gray-medium);
+    color: var(--white);
+    margin-right: 0.5rem;
+}
+
+form input[type="number"]:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    body {
+        padding: 1.5rem;
+    }
+    
+    table {
+        display: block;
+        overflow-x: auto;
+    }
+    
+    .nav-links a {
+        display: block;
+        width: 100%;
+        margin-bottom: 0.5rem;
+        text-align: center;
+    }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--black);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--gray-medium);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
+}

@@ -1,0 +1,203 @@
+/* Balenciaga-inspired CSS for Add Property Page */
+:root {
+    --black: #4e9aeb;
+    --white: #FFFFFF;
+    --gray-dark: #1561b3;
+    --gray-medium: #333333;
+    --gray-light: #D9D9D9;
+    --accent: #FF3A00; /* Balenciaga orange-red accent */
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+
+body {
+    background-color: #063970;
+    color: var(--white);
+    line-height: 1.6;
+    font-weight: 300;
+}
+
+.container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 0 1.5rem;
+}
+
+h2 {
+    font-size: 1.8rem;
+    font-weight: 400;
+    letter-spacing: 1px;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+}
+
+.container > p {
+    margin-bottom: 2rem;
+}
+
+.container > p a {
+    color: #FFFFFF;
+    text-decoration: none;
+    transition: color 0.3s;
+    font-size: 0.9rem;
+}
+
+.container > p a:hover {
+    color: var(--accent);
+}
+
+.message {
+    padding: 1rem;
+    margin-bottom: 2rem;
+    border-left: 3px solid;
+    font-size: 0.9rem;
+}
+
+.message.success {
+    background-color: rgba(39, 174, 96, 0.1);
+    border-left-color: #27ae60;
+    color: #27ae60;
+}
+
+.message.error {
+    background-color: rgba(231, 76, 60, 0.1);
+    border-left-color: #e74c3c;
+    color: #e74c3c;
+}
+
+.property-form {
+    background-color: var(--gray-dark);
+    padding: 2rem;
+    border: 1px solid var(--gray-medium);
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.5rem;
+    color: var(--gray-light);
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 1rem;
+    background-color: var(--black);
+    border: 1px solid var(--gray-medium);
+    color: var(--white);
+    font-size: 0.9rem;
+    transition: border-color 0.3s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.form-group textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.form-group input[type="file"] {
+    padding: 0.8rem;
+    background-color: var(--black);
+    border: 1px dashed var(--gray-medium);
+    cursor: pointer;
+}
+
+.form-group input[type="file"]:hover {
+    border-color: var(--accent);
+}
+
+.form-group small {
+    display: block;
+    margin-top: 0.5rem;
+    color: var(--gray-light);
+    font-size: 0.8rem;
+}
+
+.form-group button {
+    width: 100%;
+    padding: 1rem;
+    background-color: var(--black);
+    color: var(--white);
+    border: 1px solid var(--accent);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.8rem;
+    transition: all 0.3s;
+}
+
+.form-group button:hover {
+    background-color: var(--accent);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        margin: 1rem auto;
+        padding: 0 1rem;
+    }
+    
+    .property-form {
+        padding: 1.5rem;
+    }
+    
+    h2 {
+        font-size: 1.5rem;
+    }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--black);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--gray-medium);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
+}
+
+/* File input styling */
+input[type="file"]::file-selector-button {
+    background-color: var(--black);
+    color: var(--white);
+    border: 1px solid var(--gray-medium);
+    padding: 0.5rem 1rem;
+    margin-right: 1rem;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.8rem;
+    transition: all 0.3s;
+}
+
+input[type="file"]::file-selector-button:hover {
+    background-color: var(--accent);
+    border-color: var(--accent);
+}
