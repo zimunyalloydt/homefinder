@@ -2,6 +2,21 @@
 include(__DIR__ . '/../config/db_connect.php');
 session_start();
 
+$active_chat_user = isset($_GET['chat_with']) ? intval($_GET['chat_with']) : 0;
+
+// then fetch messages if a chat is open
+$chat_messages = null;
+if ($active_chat_user > 0) {
+    $stmt = $conn->prepare("
+        SELECT * FROM messages 
+        WHERE (sender_id = ? AND receiver_id = ?) 
+           OR (sender_id = ? AND receiver_id = ?)
+        ORDER BY created_at ASC
+    ");
+    $stmt->bind_param("iiii", $tenant_id, $active_chat_user, $active_chat_user, $tenant_id);
+    $stmt->execute();
+    $chat_messages = $stmt->get_result();
+}
 // Redirect if not tenant
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'tenant') {
     header("Location: login.php");
@@ -642,30 +657,206 @@ function loadConversation(landlordId, landlordName) {
             </div>
         </div>
     </div>
-
-    <div id="messages" class="tab-content">
+<div id="messages" class="tab-content">
     <h2>Messages</h2>
     <div class="chat-layout">
-        <!-- Sidebar with conversations -->
+        <!-- Sidebar (Conversations List) -->
         <div class="chat-sidebar">
-            <h3>Conversations</h3>
-            <?php if ($conversations->num_rows > 0): ?>
-                <?php while($conv = $conversations->fetch_assoc()): ?>
-                    <div class="conversation" onclick="openChat(<?php echo $conv['other_user_id']; ?>)">
-                        <?php echo htmlspecialchars($conv['full_name']); ?>
-                    </div>
-                <?php endwhile; ?>
-            <?php else: ?>
-                <p>No conversations yet.</p>
-            <?php endif; ?>
+            <div class="sidebar-header">
+                <span>Chats</span>
+                <button class="new-chat-btn" onclick="openNewChatModal()">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+            
+            <!-- Search conversations -->
+            <div class="chat-search">
+                <input type="text" id="conversation-search" placeholder="Search conversations..." onkeyup="filterConversations()">
+            </div>
+            
+            <div class="conversation-list">
+                <?php if ($conversations->num_rows > 0): ?>
+                    <?php while($conv = $conversations->fetch_assoc()): 
+                        // Get last message for preview
+                        $last_msg_stmt = $conn->prepare("
+                            SELECT message_text, created_at, is_read 
+                            FROM messages 
+                            WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) 
+                            ORDER BY created_at DESC LIMIT 1
+                        ");
+                        $last_msg_stmt->bind_param("iiii", $tenant_id, $conv['other_user_id'], $conv['other_user_id'], $tenant_id);
+                        $last_msg_stmt->execute();
+                        $last_msg = $last_msg_stmt->get_result()->fetch_assoc();
+                    ?>
+                        <a href="?chat_with=<?php echo $conv['other_user_id']; ?>" 
+                           class="conversation <?php echo $active_chat_user == $conv['other_user_id'] ? 'active' : ''; ?>"
+                           data-userid="<?php echo $conv['other_user_id']; ?>"
+                           data-username="<?php echo htmlspecialchars($conv['full_name']); ?>">
+                            <div class="conversation-avatar">
+                                <?php echo strtoupper(substr($conv['full_name'], 0, 1)); ?>
+                            </div>
+                            <div class="conversation-details">
+                                <div class="conversation-name">
+                                    <?php echo htmlspecialchars($conv['full_name']); ?>
+                                    <span class="conversation-time">
+                                        <?php if ($last_msg): ?>
+                                            <?php echo date('H:i', strtotime($last_msg['created_at'])); ?>
+                                        <?php endif; ?>
+                                    </span>
+                                </div>
+                                <div class="conversation-preview">
+                                    <?php if ($last_msg): ?>
+                                        <?php 
+                                            $preview = htmlspecialchars($last_msg['message_text']);
+                                            if (strlen($preview) > 30) {
+                                                $preview = substr($preview, 0, 30) . '...';
+                                            }
+                                            echo $preview;
+                                        ?>
+                                    <?php else: ?>
+                                        Start a conversation...
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <?php if ($last_msg && $last_msg['is_read'] == 0 && $last_msg['sender_id'] == $conv['other_user_id']): ?>
+                                <span class="unread-badge"></span>
+                            <?php endif; ?>
+                        </a>
+                    <?php endwhile; ?>
+                <?php else: ?>
+                    <p class="no-conversations">No conversations yet.</p>
+                <?php endif; ?>
+            </div>
         </div>
 
-        <!-- Chat window -->
-        <div class="chat-window" id="chat-window">
-            <p>Select a conversation to start chatting.</p>
+        <!-- Chat Window -->
+        <div class="chat-window">
+            <?php if ($active_chat_user > 0 && $chat_messages): 
+                $landlord_info = $conn->query("SELECT full_name FROM users WHERE user_id = $active_chat_user")->fetch_assoc();
+            ?>
+                <div class="chat-header">
+                    <div class="chat-partner-info">
+                        <div class="chat-avatar">
+                            <?php echo strtoupper(substr($landlord_info['full_name'], 0, 1)); ?>
+                        </div>
+                        <div class="chat-partner-name">
+                            <h3><?php echo htmlspecialchars($landlord_info['full_name']); ?></h3>
+                            <span class="online-status" id="online-status-<?php echo $active_chat_user; ?>">
+                                <i class="fas fa-circle"></i> Offline
+                            </span>
+                        </div>
+                    </div>
+                    <div class="chat-actions">
+                        <button class="chat-action-btn" title="Voice call">
+                            <i class="fas fa-phone"></i>
+                        </button>
+                        <button class="chat-action-btn" title="Video call">
+                            <i class="fas fa-video"></i>
+                        </button>
+                        <button class="chat-action-btn" title="More options">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="chat-body" id="chat-body">
+                    <div class="chat-date-divider">
+                        <span>Today</span>
+                    </div>
+                    
+                    <?php 
+                    $current_date = null;
+                    while($msg = $chat_messages->fetch_assoc()): 
+                        $msg_date = date('Y-m-d', strtotime($msg['created_at']));
+                        $today = date('Y-m-d');
+                        $yesterday = date('Y-m-d', strtotime('-1 day'));
+                        
+                        if ($current_date !== $msg_date) {
+                            $current_date = $msg_date;
+                            $display_date = '';
+                            
+                            if ($msg_date === $today) {
+                                $display_date = 'Today';
+                            } elseif ($msg_date === $yesterday) {
+                                $display_date = 'Yesterday';
+                            } else {
+                                $display_date = date('M j, Y', strtotime($msg_date));
+                            }
+                            
+                            echo '<div class="chat-date-divider"><span>' . $display_date . '</span></div>';
+                        }
+                    ?>
+                        <div class="chat-bubble <?php echo $msg['sender_id'] == $tenant_id ? 'sent' : 'received'; ?>"
+                             data-msgid="<?php echo $msg['message_id']; ?>">
+                            <p><?php echo nl2br(htmlspecialchars($msg['message_text'])); ?></p>
+                            <div class="chat-meta">
+                                <span class="chat-time"><?php echo date('H:i', strtotime($msg['created_at'])); ?></span>
+                                <?php if ($msg['sender_id'] == $tenant_id): ?>
+                                    <span class="message-status">
+                                        <?php if ($msg['is_read']): ?>
+                                            <i class="fas fa-check-double read"></i>
+                                        <?php else: ?>
+                                            <i class="fas fa-check"></i>
+                                        <?php endif; ?>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php endwhile; ?>
+                </div>
+
+                <div class="chat-footer">
+                    <div class="chat-input-actions">
+                        <button class="chat-action-btn" title="Attach file">
+                            <i class="fas fa-paperclip"></i>
+                        </button>
+                        <button class="chat-action-btn" title="Emoji">
+                            <i class="far fa-smile"></i>
+                        </button>
+                    </div>
+                    <form id="chatForm" class="chat-input-form">
+                        <input type="hidden" name="receiver_id" id="receiver_id" value="<?php echo $active_chat_user; ?>">
+                        <textarea id="message_text" name="message_text" placeholder="Type a message..." rows="1" oninput="autoResize(this)"></textarea>
+                        <button type="submit" class="send-btn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+
+            <?php else: ?>
+                <div class="no-chat-selected">
+                    <div class="no-chat-icon">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <h3>Your messages</h3>
+                    <p>Select a conversation or start a new one</p>
+                    <button class="btn-primary" onclick="openNewChatModal()">Start new conversation</button>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 </div>
+
+<!-- New Chat Modal -->
+<div id="newChatModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>New conversation</h3>
+            <span class="close" onclick="closeNewChatModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="search-box">
+                <input type="text" id="landlordSearch" placeholder="Search landlords..." onkeyup="searchLandlords()">
+            </div>
+            <div id="landlordList" class="landlord-list">
+                <!-- Landlords will be populated here via AJAX -->
+            </div>
+        </div>
+    </div>
+</div>
+    
+
+
 
     
     <!-- Profile Edit Tab -->
@@ -711,21 +902,7 @@ function loadConversation(landlordId, landlordName) {
 
 <script src="https://cdn.jsdelivr.net/npm/swiper@8/swiper-bundle.min.js"></script>
 <script>
-    // Swiper init
-    document.addEventListener('DOMContentLoaded', function() {
-        const swipers = document.querySelectorAll('.swiper');
-        swipers.forEach(swiperEl => {
-            new Swiper(swiperEl, {
-                loop: true,
-                autoplay: { delay: 3000, disableOnInteraction: false },
-                pagination: { el: swiperEl.querySelector('.swiper-pagination'), clickable: true },
-                navigation: {
-                    nextEl: swiperEl.querySelector('.swiper-button-next'),
-                    prevEl: swiperEl.querySelector('.swiper-button-prev'),
-                },
-            });
-        });
-    });
+   
 
     function switchTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
@@ -745,37 +922,276 @@ function loadConversation(landlordId, landlordName) {
         });
 }
 
-function sendMessage(event, userId) {
-    event.preventDefault();
-    const formData = new FormData(event.target);
-
-    fetch("send_message.php?receiver_id=" + userId, {
-        method: "POST",
-        body: formData
-    }).then(res => res.text())
-      .then(() => openChat(userId)); // reload chat
-}
-
-function loadConversation(landlordId, landlordName, callback) {
-    fetch("fetch_chat.php?user_id=" + landlordId)
-        .then(res => res.text())
-        .then(html => {
-            document.getElementById("chat-window").innerHTML = html;
-
-            // Run callback after content is loaded
-            if (callback) callback();
-
-            // Focus textarea if exists
-            const textarea = document.querySelector(".chat-input-form textarea");
-            if (textarea) textarea.focus();
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize chat if active
+    <?php if ($active_chat_user > 0): ?>
+        scrollToBottom();
+        markMessagesAsRead(<?php echo $active_chat_user; ?>);
+        startPolling(<?php echo $active_chat_user; ?>);
+    <?php endif; ?>
+    
+    // Chat form submission
+    const chatForm = document.getElementById('chatForm');
+    if (chatForm) {
+        chatForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            sendMessage();
         });
+    }
+    
+    // Enable Enter key to send message (Shift+Enter for new line)
+    const messageText = document.getElementById('message_text');
+    if (messageText) {
+        messageText.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                document.getElementById('chatForm').dispatchEvent(new Event('submit'));
+            }
+        });
+    }
+});
 
-    // Mark active conversation in sidebar
-    document.querySelectorAll('.conversation').forEach(conv => conv.classList.remove('active'));
-    const activeConv = document.querySelector(`.conversation[data-landlord-id="${landlordId}"]`);
-    if (activeConv) activeConv.classList.add('active');
+// Auto-resize textarea
+function autoResize(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = (textarea.scrollHeight) + 'px';
 }
 
+// Scroll to bottom of chat
+function scrollToBottom() {
+    const chatBody = document.getElementById('chat-body');
+    if (chatBody) {
+        chatBody.scrollTop = chatBody.scrollHeight;
+    }
+}
+
+// Send message via AJAX
+function sendMessage() {
+    const receiverId = document.getElementById('receiver_id').value;
+    const messageText = document.getElementById('message_text');
+    const message = messageText.value.trim();
+    
+    if (!message) return;
+    
+    // Create temporary message bubble (optimistic UI update)
+    const tempId = 'temp-' + Date.now();
+    const chatBody = document.getElementById('chat-body');
+    const now = new Date();
+    const timeStr = now.getHours().toString().padStart(2, '0') + ':' + 
+                    now.getMinutes().toString().padStart(2, '0');
+    
+    const tempMsgHtml = `
+        <div class="chat-bubble sent" data-msgid="${tempId}">
+            <p>${message.replace(/\n/g, '<br>')}</p>
+            <div class="chat-meta">
+                <span class="chat-time">${timeStr}</span>
+                <span class="message-status"><i class="fas fa-check"></i></span>
+            </div>
+        </div>
+    `;
+    
+    chatBody.insertAdjacentHTML('beforeend', tempMsgHtml);
+    scrollToBottom();
+    
+    // Clear input and reset height
+    messageText.value = '';
+    messageText.style.height = 'auto';
+    
+    // Send via AJAX
+    const formData = new FormData();
+    formData.append('send_message', 'true');
+    formData.append('receiver_id', receiverId);
+    formData.append('message_text', message);
+    
+    fetch('', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.text())
+    .then(data => {
+        // Replace temporary message with actual one from server if needed
+        // In a real implementation, you might want to update the message ID
+        console.log('Message sent successfully');
+    })
+    .catch(error => {
+        console.error('Error sending message:', error);
+        // Show error indicator
+        const tempMsg = document.querySelector(`[data-msgid="${tempId}"]`);
+        if (tempMsg) {
+            tempMsg.querySelector('.message-status').innerHTML = '<i class="fas fa-exclamation-circle error"></i>';
+        }
+    });
+}
+
+// Poll for new messages
+function startPolling(receiverId) {
+    setInterval(() => {
+        checkNewMessages(receiverId);
+    }, 3000); // Check every 3 seconds
+}
+
+// Check for new messages
+function checkNewMessages(receiverId) {
+    // Get the last message ID in the chat
+    const lastMsg = document.querySelector('.chat-bubble:last-child');
+    const lastMsgId = lastMsg ? lastMsg.dataset.msgid : 0;
+    
+    fetch(`check_messages.php?receiver_id=${receiverId}&last_id=${lastMsgId}`)
+    .then(response => response.json())
+    .then(messages => {
+        if (messages.length > 0) {
+            appendNewMessages(messages);
+            markMessagesAsRead(receiverId);
+        }
+        
+        // Update online status
+        checkOnlineStatus(receiverId);
+    })
+    .catch(error => console.error('Error checking messages:', error));
+}
+
+// Append new messages to chat
+function appendNewMessages(messages) {
+    const chatBody = document.getElementById('chat-body');
+    
+    messages.forEach(msg => {
+        const msgHtml = `
+            <div class="chat-bubble received" data-msgid="${msg.id}">
+                <p>${msg.text.replace(/\n/g, '<br>')}</p>
+                <div class="chat-meta">
+                    <span class="chat-time">${msg.time}</span>
+                </div>
+            </div>
+        `;
+        
+        chatBody.insertAdjacentHTML('beforeend', msgHtml);
+    });
+    
+    scrollToBottom();
+}
+
+// Mark messages as read
+function markMessagesAsRead(senderId) {
+    fetch('mark_as_read.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            sender_id: senderId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Update message status indicators
+        document.querySelectorAll('.chat-bubble.received').forEach(bubble => {
+            bubble.querySelector('.message-status')?.remove();
+        });
+    })
+    .catch(error => console.error('Error marking messages as read:', error));
+}
+
+// Check online status
+function checkOnlineStatus(userId) {
+    fetch(`check_online.php?user_id=${userId}`)
+    .then(response => response.json())
+    .then(data => {
+        const statusElement = document.getElementById(`online-status-${userId}`);
+        if (statusElement) {
+            if (data.online) {
+                statusElement.innerHTML = '<i class="fas fa-circle online"></i> Online';
+            } else {
+                const lastSeen = data.last_seen ? `Last seen ${formatLastSeen(data.last_seen)}` : 'Offline';
+                statusElement.innerHTML = `<i class="fas fa-circle"></i> ${lastSeen}`;
+            }
+        }
+    })
+    .catch(error => console.error('Error checking online status:', error));
+}
+
+// Format last seen time
+function formatLastSeen(timestamp) {
+    const now = new Date();
+    const lastSeen = new Date(timestamp);
+    const diffMs = now - lastSeen;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    
+    if (diffMins < 1) return 'just now';
+    if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+    
+    return lastSeen.toLocaleDateString();
+}
+
+// New chat modal functions
+function openNewChatModal() {
+    document.getElementById('newChatModal').style.display = 'block';
+    searchLandlords(); // Load all landlords initially
+}
+
+function closeNewChatModal() {
+    document.getElementById('newChatModal').style.display = 'none';
+}
+
+// Search landlords for new chat
+function searchLandlords() {
+    const query = document.getElementById('landlordSearch').value;
+    
+    fetch(`search_landlords.php?q=${encodeURIComponent(query)}`)
+    .then(response => response.json())
+    .then(landlords => {
+        const landlordList = document.getElementById('landlordList');
+        landlordList.innerHTML = '';
+        
+        if (landlords.length === 0) {
+            landlordList.innerHTML = '<p class="no-results">No landlords found</p>';
+            return;
+        }
+        
+        landlords.forEach(landlord => {
+            const landlordEl = document.createElement('div');
+            landlordEl.className = 'landlord-item';
+            landlordEl.innerHTML = `
+                <div class="landlord-avatar">${landlord.initials}</div>
+                <div class="landlord-name">${landlord.name}</div>
+                <button class="btn-primary" onclick="startChatWith(${landlord.id}, '${landlord.name}')">Chat</button>
+            `;
+            landlordList.appendChild(landlordEl);
+        });
+    })
+    .catch(error => console.error('Error searching landlords:', error));
+}
+
+// Start chat with selected landlord
+function startChatWith(landlordId, landlordName) {
+    closeNewChatModal();
+    window.location.href = `?chat_with=${landlordId}`;
+}
+
+// Filter conversations
+function filterConversations() {
+    const searchTerm = document.getElementById('conversation-search').value.toLowerCase();
+    const conversations = document.querySelectorAll('.conversation');
+    
+    conversations.forEach(conv => {
+        const userName = conv.dataset.username.toLowerCase();
+        if (userName.includes(searchTerm)) {
+            conv.style.display = 'flex';
+        } else {
+            conv.style.display = 'none';
+        }
+    });
+}
+
+// Close modal if clicked outside
+window.onclick = function(event) {
+    const modal = document.getElementById('newChatModal');
+    if (event.target === modal) {
+        closeNewChatModal();
+    }
+}
+// Start a new conversation from property listing
 function startNewConversation(landlordId, landlordName, propertyId, propertyTitle) {
     // Check if conversation already exists
     const existingConversation = document.querySelector(`.conversation[data-landlord-id="${landlordId}"]`);
