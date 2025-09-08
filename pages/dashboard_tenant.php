@@ -2,6 +2,27 @@
 include(__DIR__ . '/../config/db_connect.php');
 session_start();
 
+$currentUserId = $_SESSION['user_id'];
+
+// find the landlord for the tenant’s last application
+$sql = "SELECT p.landlord_id 
+        FROM applications a
+        JOIN properties p ON a.property_id = p.property_id
+        WHERE a.tenant_id=? 
+        ORDER BY a.date_applied DESC 
+        LIMIT 1";
+
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $currentUserId);
+$stmt->execute();
+$result = $stmt->get_result();
+$row = $result->fetch_assoc();
+
+$otherUserId = $row['landlord_id'] ?? 0;
+
+
+
+
 $active_chat_user = isset($_GET['chat_with']) ? intval($_GET['chat_with']) : 0;
 
 // then fetch messages if a chat is open
@@ -296,21 +317,16 @@ $conversations = $conv_stmt->get_result();
     
     <div class="tab-container">
        <div class="tab" data-tab="available" onclick="switchTab('available')">Available Properties</div>
-<div class="tab" data-tab="favorites" onclick="switchTab('favorites')">❤️ Favorites</div>
-<div class="tab" data-tab="applications" onclick="switchTab('applications')">📄 My Applications</div>
-<div class="tab" data-tab="ratings" onclick="switchTab('ratings')">⭐ My Ratings</div>
-<div class="tab" data-tab="messages" onclick="switchTab('messages')">💬 Messages</div>
-<div class="tab" data-tab="profile" onclick="switchTab('profile')">⚙ Edit Profile</div>
-
-      
+       <div class="tab" data-tab="favorites" onclick="switchTab('favorites')">❤️ Favorites</div>
+       <div class="tab" data-tab="applications" onclick="switchTab('applications')">📄 My Applications</div>
+       <div class="tab" data-tab="ratings" onclick="switchTab('ratings')">⭐ My Ratings</div>
+       <div class="tab" data-tab="profile" onclick="switchTab('profile')">⚙ Edit Profile</div>
+      <?php if ($otherUserId > 0): ?>
+    <a href="messages.php?chat_with=<?php echo $otherUserId; ?>" class="btn btn-primary">💬 Messages</a>
+<?php endif; ?>
     </div>
 
     <div class="sidebar">
-   
-   
-</div>
-
-    
     <!-- Available Properties Tab -->
     <div id="available" class="tab-content active">
     <h2>Available Properties</h2>
@@ -657,203 +673,7 @@ function loadConversation(landlordId, landlordName) {
             </div>
         </div>
     </div>
-<div id="messages" class="tab-content">
-    <h2>Messages</h2>
-    <div class="chat-layout">
-        <!-- Sidebar (Conversations List) -->
-        <div class="chat-sidebar">
-            <div class="sidebar-header">
-                <span>Chats</span>
-                <button class="new-chat-btn" onclick="openNewChatModal()">
-                    <i class="fas fa-plus"></i>
-                </button>
-            </div>
-            
-            <!-- Search conversations -->
-            <div class="chat-search">
-                <input type="text" id="conversation-search" placeholder="Search conversations..." onkeyup="filterConversations()">
-            </div>
-            
-            <div class="conversation-list">
-                <?php if ($conversations->num_rows > 0): ?>
-                    <?php while($conv = $conversations->fetch_assoc()): 
-                        // Get last message for preview
-                        $last_msg_stmt = $conn->prepare("
-                            SELECT message_text, created_at, is_read 
-                            FROM messages 
-                            WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) 
-                            ORDER BY created_at DESC LIMIT 1
-                        ");
-                        $last_msg_stmt->bind_param("iiii", $tenant_id, $conv['other_user_id'], $conv['other_user_id'], $tenant_id);
-                        $last_msg_stmt->execute();
-                        $last_msg = $last_msg_stmt->get_result()->fetch_assoc();
-                    ?>
-                        <a href="?chat_with=<?php echo $conv['other_user_id']; ?>" 
-                           class="conversation <?php echo $active_chat_user == $conv['other_user_id'] ? 'active' : ''; ?>"
-                           data-userid="<?php echo $conv['other_user_id']; ?>"
-                           data-username="<?php echo htmlspecialchars($conv['full_name']); ?>">
-                            <div class="conversation-avatar">
-                                <?php echo strtoupper(substr($conv['full_name'], 0, 1)); ?>
-                            </div>
-                            <div class="conversation-details">
-                                <div class="conversation-name">
-                                    <?php echo htmlspecialchars($conv['full_name']); ?>
-                                    <span class="conversation-time">
-                                        <?php if ($last_msg): ?>
-                                            <?php echo date('H:i', strtotime($last_msg['created_at'])); ?>
-                                        <?php endif; ?>
-                                    </span>
-                                </div>
-                                <div class="conversation-preview">
-                                    <?php if ($last_msg): ?>
-                                        <?php 
-                                            $preview = htmlspecialchars($last_msg['message_text']);
-                                            if (strlen($preview) > 30) {
-                                                $preview = substr($preview, 0, 30) . '...';
-                                            }
-                                            echo $preview;
-                                        ?>
-                                    <?php else: ?>
-                                        Start a conversation...
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                            <?php if ($last_msg && $last_msg['is_read'] == 0 && $last_msg['sender_id'] == $conv['other_user_id']): ?>
-                                <span class="unread-badge"></span>
-                            <?php endif; ?>
-                        </a>
-                    <?php endwhile; ?>
-                <?php else: ?>
-                    <p class="no-conversations">No conversations yet.</p>
-                <?php endif; ?>
-            </div>
-        </div>
 
-        <!-- Chat Window -->
-        <div class="chat-window">
-            <?php if ($active_chat_user > 0 && $chat_messages): 
-                $landlord_info = $conn->query("SELECT full_name FROM users WHERE user_id = $active_chat_user")->fetch_assoc();
-            ?>
-                <div class="chat-header">
-                    <div class="chat-partner-info">
-                        <div class="chat-avatar">
-                            <?php echo strtoupper(substr($landlord_info['full_name'], 0, 1)); ?>
-                        </div>
-                        <div class="chat-partner-name">
-                            <h3><?php echo htmlspecialchars($landlord_info['full_name']); ?></h3>
-                            <span class="online-status" id="online-status-<?php echo $active_chat_user; ?>">
-                                <i class="fas fa-circle"></i> Offline
-                            </span>
-                        </div>
-                    </div>
-                    <div class="chat-actions">
-                        <button class="chat-action-btn" title="Voice call">
-                            <i class="fas fa-phone"></i>
-                        </button>
-                        <button class="chat-action-btn" title="Video call">
-                            <i class="fas fa-video"></i>
-                        </button>
-                        <button class="chat-action-btn" title="More options">
-                            <i class="fas fa-ellipsis-v"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="chat-body" id="chat-body">
-                    <div class="chat-date-divider">
-                        <span>Today</span>
-                    </div>
-                    
-                    <?php 
-                    $current_date = null;
-                    while($msg = $chat_messages->fetch_assoc()): 
-                        $msg_date = date('Y-m-d', strtotime($msg['created_at']));
-                        $today = date('Y-m-d');
-                        $yesterday = date('Y-m-d', strtotime('-1 day'));
-                        
-                        if ($current_date !== $msg_date) {
-                            $current_date = $msg_date;
-                            $display_date = '';
-                            
-                            if ($msg_date === $today) {
-                                $display_date = 'Today';
-                            } elseif ($msg_date === $yesterday) {
-                                $display_date = 'Yesterday';
-                            } else {
-                                $display_date = date('M j, Y', strtotime($msg_date));
-                            }
-                            
-                            echo '<div class="chat-date-divider"><span>' . $display_date . '</span></div>';
-                        }
-                    ?>
-                        <div class="chat-bubble <?php echo $msg['sender_id'] == $tenant_id ? 'sent' : 'received'; ?>"
-                             data-msgid="<?php echo $msg['message_id']; ?>">
-                            <p><?php echo nl2br(htmlspecialchars($msg['message_text'])); ?></p>
-                            <div class="chat-meta">
-                                <span class="chat-time"><?php echo date('H:i', strtotime($msg['created_at'])); ?></span>
-                                <?php if ($msg['sender_id'] == $tenant_id): ?>
-                                    <span class="message-status">
-                                        <?php if ($msg['is_read']): ?>
-                                            <i class="fas fa-check-double read"></i>
-                                        <?php else: ?>
-                                            <i class="fas fa-check"></i>
-                                        <?php endif; ?>
-                                    </span>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    <?php endwhile; ?>
-                </div>
-
-                <div class="chat-footer">
-                    <div class="chat-input-actions">
-                        <button class="chat-action-btn" title="Attach file">
-                            <i class="fas fa-paperclip"></i>
-                        </button>
-                        <button class="chat-action-btn" title="Emoji">
-                            <i class="far fa-smile"></i>
-                        </button>
-                    </div>
-                    <form id="chatForm" class="chat-input-form">
-                        <input type="hidden" name="receiver_id" id="receiver_id" value="<?php echo $active_chat_user; ?>">
-                        <textarea id="message_text" name="message_text" placeholder="Type a message..." rows="1" oninput="autoResize(this)"></textarea>
-                        <button type="submit" class="send-btn">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
-                    </form>
-                </div>
-
-            <?php else: ?>
-                <div class="no-chat-selected">
-                    <div class="no-chat-icon">
-                        <i class="fas fa-comments"></i>
-                    </div>
-                    <h3>Your messages</h3>
-                    <p>Select a conversation or start a new one</p>
-                    <button class="btn-primary" onclick="openNewChatModal()">Start new conversation</button>
-                </div>
-            <?php endif; ?>
-        </div>
-    </div>
-</div>
-
-<!-- New Chat Modal -->
-<div id="newChatModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>New conversation</h3>
-            <span class="close" onclick="closeNewChatModal()">&times;</span>
-        </div>
-        <div class="modal-body">
-            <div class="search-box">
-                <input type="text" id="landlordSearch" placeholder="Search landlords..." onkeyup="searchLandlords()">
-            </div>
-            <div id="landlordList" class="landlord-list">
-                <!-- Landlords will be populated here via AJAX -->
-            </div>
-        </div>
-    </div>
-</div>
     
 
 
@@ -1225,6 +1045,58 @@ function startNewConversation(landlordId, landlordName, propertyId, propertyTitl
     }
 }
 
+document.addEventListener("DOMContentLoaded", function () {
+    const chatBody = document.getElementById("chat-body");
+    const chatForm = document.getElementById("chatForm");
+    const activeChatUser = <?php echo $active_chat_user; ?>;
+
+    function fetchMessages() {
+        if (!activeChatUser) return;
+        fetch("fetch_messages.php?chat_with=" + activeChatUser)
+            .then(res => res.json())
+            .then(data => {
+                if (!chatBody) return;
+                chatBody.innerHTML = "";
+                data.forEach(msg => {
+                    const bubble = document.createElement("div");
+                    bubble.classList.add("chat-bubble");
+                    bubble.classList.add(msg.sender_id == <?php echo $landlord_id; ?> ? "sent" : "received");
+                    bubble.innerHTML = `<p>${msg.message_text}</p>
+                                        <span class="chat-time">${new Date(msg.created_at).toLocaleTimeString()}</span>`;
+                    chatBody.appendChild(bubble);
+                });
+                chatBody.scrollTop = chatBody.scrollHeight;
+            })
+            .catch(err => console.error(err));
+    }
+
+    fetchMessages();
+    setInterval(fetchMessages, 2000);
+
+    if (chatForm) {
+        chatForm.addEventListener("submit", function (e) {
+            e.preventDefault();
+            const receiver_id = document.getElementById("receiver_id").value;
+            const message_text = document.getElementById("message_text").value.trim();
+            if (message_text === "") return;
+
+            fetch("send_message.php", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ receiver_id, message_text })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "success") {
+                    document.getElementById("message_text").value = "";
+                    fetchMessages(); // refresh immediately
+                } else {
+                    alert("Message failed: " + data.message);
+                }
+            });
+        });
+    }
+});
 
 </script>
 </body>

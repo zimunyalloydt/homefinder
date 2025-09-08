@@ -2,6 +2,26 @@
 include(__DIR__ . '/../config/db_connect.php');
 session_start();
 
+
+$currentUserId = $_SESSION['user_id'];
+
+// find a tenant who applied
+$sql = "SELECT a.tenant_id 
+        FROM applications a
+        JOIN properties p ON a.property_id = p.property_id
+        WHERE p.landlord_id=? 
+        ORDER BY a.date_applied DESC 
+        LIMIT 1";
+
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $currentUserId);
+$stmt->execute();
+$result = $stmt->get_result();
+$row = $result->fetch_assoc();
+
+$otherUserId = $row['tenant_id'] ?? 0;
+
+
 // Redirect if not logged in or not landlord
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'landlord') {
     header("Location: login.php");
@@ -300,7 +320,10 @@ if ($active_chat_user > 0) {
                 <button class="tab-button" onclick="openTab('add-property')">Add Property</button>
                 <button class="tab-button" onclick="openTab('applications')">Applications</button>
                 <button class="tab-button" onclick="openTab('ratings')">Ratings</button>
-                <button class="tab-button" onclick="openTab('messages')">Messages</button>
+            <?php if ($otherUserId > 0): ?>
+    <a href="messages.php?chat_with=<?php echo $otherUserId; ?>" class="btn btn-primary">💬 Messages</a>
+<?php endif; ?>
+
             </div>
 
             <div id="properties" class="tab-content active">
@@ -632,87 +655,29 @@ if ($active_chat_user > 0) {
                 </div>
             </div>
 
-             <div id="messages" class="tab-content">
-    <h2>Messages</h2>
-    <div class="chat-layout">
-        <!-- Sidebar (Conversations List) -->
-        <div class="chat-sidebar">
-            <div class="sidebar-header">Chats</div>
-            <div class="conversation-list">
-                <?php if ($conversations->num_rows > 0): ?>
-                    <?php while($conv = $conversations->fetch_assoc()): ?>
-                        <a href="?chat_with=<?php echo $conv['other_user_id']; ?>" 
-                           class="conversation <?php echo $active_chat_user == $conv['other_user_id'] ? 'active' : ''; ?>">
-                            <div class="conversation-name">
-                                <?php echo htmlspecialchars($conv['full_name']); ?>
-                            </div>
-                        </a>
-                    <?php endwhile; ?>
-                <?php else: ?>
-                    <p>No conversations yet.</p>
-                <?php endif; ?>
-            </div>
-        </div>
-
-        <!-- Chat Window -->
-        <div class="chat-window">
-            <?php if ($active_chat_user > 0 && $chat_messages): ?>
-                <div class="chat-header">
-                    <h3>
-                        <?php 
-                        // fetch tenant name for header
-                        $u = $conn->query("SELECT full_name FROM users WHERE user_id = $active_chat_user")->fetch_assoc();
-                        echo htmlspecialchars($u['full_name']); 
-                        ?>
-                    </h3>
-                </div>
-
-                <div class="chat-body" id="chat-body">
-                    <?php while($msg = $chat_messages->fetch_assoc()): ?>
-                        <div class="chat-bubble <?php echo $msg['sender_id'] == $landlord_id ? 'sent' : 'received'; ?>">
-                            <p><?php echo nl2br(htmlspecialchars($msg['message_text'])); ?></p>
-                            <span class="chat-time"><?php echo date('H:i', strtotime($msg['created_at'])); ?></span>
-                        </div>
-                    <?php endwhile; ?>
-                </div>
-
-                <div class="chat-footer">
-    <form id="chatForm">
-        <input type="hidden" name="receiver_id" id="receiver_id" value="<?php echo $active_chat_user; ?>">
-        <textarea id="message_text" placeholder="Type a message..." required></textarea>
-        <button type="submit"><i class="fas fa-paper-plane"></i></button>
-    </form>
-</div>
-
-            <?php else: ?>
-                <div class="no-chat">
-                    <p>Select a conversation to start chatting.</p>
-                </div>
-            <?php endif; ?>
-        </div>
-    </div>
+            
 
     <script src="https://cdn.jsdelivr.net/npm/swiper@8/swiper-bundle.min.js"></script>
     <script>
     // Initialize all Swiper sliders
-    document.addEventListener("DOMContentLoaded", function () {
-        const swipers = document.querySelectorAll(".swiper");
-        swipers.forEach(swiperEl => {
-            new Swiper(swiperEl, {
-                loop: true,
-                autoplay: {
-                    delay: 3000,
-                    disableOnInteraction: false,
-                },
-                pagination: {
-                    el: swiperEl.querySelector(".swiper-pagination"),
-                    clickable: true,
-                },
-                navigation: {
-                    nextEl: swiperEl.querySelector(".swiper-button-next"),
-                    prevEl: swiperEl.querySelector(".swiper-button-prev"),
-                },
-            });
+   document.addEventListener("DOMContentLoaded", function () {
+    // ---- Swiper init ----
+    const swipers = document.querySelectorAll(".swiper");
+    swipers.forEach(swiperEl => {
+        new Swiper(swiperEl, {
+            loop: true,
+            autoplay: {
+                delay: 3000,
+                disableOnInteraction: false
+            },
+            pagination: {
+                el: swiperEl.querySelector(".swiper-pagination"),
+                clickable: true
+            },
+            navigation: {
+                nextEl: swiperEl.querySelector(".swiper-button-next"),
+                prevEl: swiperEl.querySelector(".swiper-button-prev")
+            }
         });
     });
 
@@ -783,6 +748,59 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             })
             .catch(err => console.error("Error sending:", err));
+        });
+    }
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    const chatBody = document.getElementById("chat-body");
+    const chatForm = document.getElementById("chatForm");
+    const activeChatUser = <?php echo $active_chat_user; ?>;
+
+    function fetchMessages() {
+        if (!activeChatUser) return;
+        fetch("fetch_messages.php?chat_with=" + activeChatUser)
+            .then(res => res.json())
+            .then(data => {
+                if (!chatBody) return;
+                chatBody.innerHTML = "";
+                data.forEach(msg => {
+                    const bubble = document.createElement("div");
+                    bubble.classList.add("chat-bubble");
+                    bubble.classList.add(msg.sender_id == <?php echo $landlord_id; ?> ? "sent" : "received");
+                    bubble.innerHTML = `<p>${msg.message_text}</p>
+                                        <span class="chat-time">${new Date(msg.created_at).toLocaleTimeString()}</span>`;
+                    chatBody.appendChild(bubble);
+                });
+                chatBody.scrollTop = chatBody.scrollHeight;
+            })
+            .catch(err => console.error(err));
+    }
+
+    fetchMessages();
+    setInterval(fetchMessages, 2000);
+
+    if (chatForm) {
+        chatForm.addEventListener("submit", function (e) {
+            e.preventDefault();
+            const receiver_id = document.getElementById("receiver_id").value;
+            const message_text = document.getElementById("message_text").value.trim();
+            if (message_text === "") return;
+
+            fetch("send_message.php", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ receiver_id, message_text })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "success") {
+                    document.getElementById("message_text").value = "";
+                    fetchMessages(); // refresh immediately
+                } else {
+                    alert("Message failed: " + data.message);
+                }
+            });
         });
     }
 });
