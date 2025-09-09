@@ -313,18 +313,16 @@ if ($active_chat_user > 0) {
                 <?php echo htmlspecialchars($message); ?>
             </div>
         <?php endif; ?>
-
-        <div class="tab-container">
-            <div class="tab-buttons">
-                <button class="tab-button active" onclick="openTab('properties')">My Properties</button>
-                <button class="tab-button" onclick="openTab('add-property')">Add Property</button>
-                <button class="tab-button" onclick="openTab('applications')">Applications</button>
-                <button class="tab-button" onclick="openTab('ratings')">Ratings</button>
-            <?php if ($otherUserId > 0): ?>
-    <a href="messages.php?chat_with=<?php echo $otherUserId; ?>" class="btn btn-primary">💬 Messages</a>
-<?php endif; ?>
-
-            </div>
+<div class="tab-container">
+    <div class="tab-buttons">
+        <button class="tab-button active" onclick="openTab('properties')">My Properties</button>
+        <button class="tab-button" onclick="openTab('add-property')">Add Property</button>
+        <button class="tab-button" onclick="openTab('applications')">Applications</button>
+        <button class="tab-button" onclick="openTab('ratings')">Ratings</button>
+        <?php if ($otherUserId > 0): ?>
+            <a href="messages.php?chat_with=<?php echo $otherUserId; ?>" class="btn btn-primary">💬 Messages</a>
+        <?php endif; ?>
+    </div></div>
 
             <div id="properties" class="tab-content active">
                 <h3>Your Properties</h3>
@@ -654,159 +652,50 @@ if ($active_chat_user > 0) {
                     <?php endif; ?>
                 </div>
             </div>
-
+        </div>
             
 
     <script src="https://cdn.jsdelivr.net/npm/swiper@8/swiper-bundle.min.js"></script>
     <script>
-    // Initialize all Swiper sliders
-   document.addEventListener("DOMContentLoaded", function () {
-    // ---- Swiper init ----
-    const swipers = document.querySelectorAll(".swiper");
-    swipers.forEach(swiperEl => {
-        new Swiper(swiperEl, {
-            loop: true,
-            autoplay: {
-                delay: 3000,
-                disableOnInteraction: false
-            },
-            pagination: {
-                el: swiperEl.querySelector(".swiper-pagination"),
-                clickable: true
-            },
-            navigation: {
-                nextEl: swiperEl.querySelector(".swiper-button-next"),
-                prevEl: swiperEl.querySelector(".swiper-button-prev")
-            }
-        });
-    });
-
-
-        function openTab(tabName) {
-            // Hide all tab content
-            const tabContents = document.getElementsByClassName('tab-content');
-            for (let i = 0; i < tabContents.length; i++) {
-                tabContents[i].classList.remove('active');
-            }
-            
-            // Remove active class from all buttons
-            const tabButtons = document.getElementsByClassName('tab-button');
-            for (let i = 0; i < tabButtons.length; i++) {
-                tabButtons[i].classList.remove('active');
-            }
-            
-            // Show the specific tab content
-            document.getElementById(tabName).classList.add('active');
-            
-            // Add active class to the button that opened the tab
-            event.currentTarget.classList.add('active');
-        }
-
+        // Initialize all Swiper sliders
         document.addEventListener("DOMContentLoaded", function () {
-    const chatBody = document.getElementById("chat-body");
-    if (chatBody) {
-        chatBody.scrollTop = chatBody.scrollHeight;
-    }
-});
-
-    </script>
-    <script>
-document.addEventListener("DOMContentLoaded", function () {
-    const chatForm = document.getElementById("chatForm");
-    const chatBody = document.getElementById("chat-body");
-
-    if (chatForm) {
-        chatForm.addEventListener("submit", function (e) {
-            e.preventDefault();
-
-            const receiver_id = document.getElementById("receiver_id").value;
-            const message_text = document.getElementById("message_text").value.trim();
-
-            if (message_text === "") return;
-
-            fetch("send_message.php", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ receiver_id, message_text })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === "success") {
-                    // Add message bubble instantly
-                    const bubble = document.createElement("div");
-                    bubble.classList.add("chat-bubble", "sent");
-                    bubble.innerHTML = `<p>${message_text}</p><span class="chat-time">now</span>`;
-                    chatBody.appendChild(bubble);
-
-                    // Scroll to bottom
-                    chatBody.scrollTop = chatBody.scrollHeight;
-
-                    // Clear input
-                    document.getElementById("message_text").value = "";
-                } else {
-                    alert("Message failed: " + data.message);
-                }
-            })
-            .catch(err => console.error("Error sending:", err));
-        });
-    }
-});
-
-document.addEventListener("DOMContentLoaded", function () {
-    const chatBody = document.getElementById("chat-body");
-    const chatForm = document.getElementById("chatForm");
-    const activeChatUser = <?php echo $active_chat_user; ?>;
-
-    function fetchMessages() {
-        if (!activeChatUser) return;
-        fetch("fetch_messages.php?chat_with=" + activeChatUser)
-            .then(res => res.json())
-            .then(data => {
-                if (!chatBody) return;
-                chatBody.innerHTML = "";
-                data.forEach(msg => {
-                    const bubble = document.createElement("div");
-                    bubble.classList.add("chat-bubble");
-                    bubble.classList.add(msg.sender_id == <?php echo $landlord_id; ?> ? "sent" : "received");
-                    bubble.innerHTML = `<p>${msg.message_text}</p>
-                                        <span class="chat-time">${new Date(msg.created_at).toLocaleTimeString()}</span>`;
-                    chatBody.appendChild(bubble);
+            // ---- Swiper init ----
+            const swipers = document.querySelectorAll(".swiper");
+            swipers.forEach(swiperEl => {
+                new Swiper(swiperEl, {
+                    loop: true,
+                    autoplay: {
+                        delay: 3000,
+                        disableOnInteraction: false
+                    },
+                    pagination: {
+                        el: swiperEl.querySelector(".swiper-pagination"),
+                        clickable: true
+                    },
+                    navigation: {
+                        nextEl: swiperEl.querySelector(".swiper-button-next"),
+                        prevEl: swiperEl.querySelector(".swiper-button-prev")
+                    }
                 });
-                chatBody.scrollTop = chatBody.scrollHeight;
-            })
-            .catch(err => console.error(err));
-    }
-
-    fetchMessages();
-    setInterval(fetchMessages, 2000);
-
-    if (chatForm) {
-        chatForm.addEventListener("submit", function (e) {
-            e.preventDefault();
-            const receiver_id = document.getElementById("receiver_id").value;
-            const message_text = document.getElementById("message_text").value.trim();
-            if (message_text === "") return;
-
-            fetch("send_message.php", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ receiver_id, message_text })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === "success") {
-                    document.getElementById("message_text").value = "";
-                    fetchMessages(); // refresh immediately
-                } else {
-                    alert("Message failed: " + data.message);
-                }
             });
         });
+
+       function openTab(tabName, event) {
+        // Hide all tab contents
+        var tabContents = document.getElementsByClassName("tab-content");
+        for (var i = 0; i < tabContents.length; i++) {
+            tabContents[i].classList.remove("active");
+        }
+            
+            var tabButtons = document.getElementsByClassName("tab-button");
+        for (var i = 0; i < tabButtons.length; i++) {
+            tabButtons[i].classList.remove("active");
+        }
+            
+            // Show the selected tab and set the button as active
+              document.getElementById(tabName).classList.add("active");
+        event.currentTarget.classList.add("active");
     }
-});
-</script>
-
-</body>
+    </script>
+    </body>
 </html>
-
-
