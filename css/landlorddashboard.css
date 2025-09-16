@@ -546,158 +546,7 @@
             background-color: #e03200;
         }
         
-        .message {
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 0;
-        }
         
-        .message.success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .message.error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        /* Chat Layout */
-        .chat-layout {
-            display: flex;
-            height: 80vh;
-            border: 1px solid var(--gray-medium);
-            border-radius: 0;
-            overflow: hidden;
-            background: var(--gray-dark);
-        }
-
-        /* Sidebar */
-        .chat-sidebar {
-            width: 30%;
-            background: var(--black);
-            border-right: 1px solid var(--gray-medium);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .sidebar-header {
-            padding: 15px;
-            font-weight: bold;
-            background: var(--gray-dark);
-            border-bottom: 1px solid var(--gray-medium);
-            color: var(--white);
-        }
-
-        .conversation-list {
-            flex: 1;
-            overflow-y: auto;
-        }
-
-        .conversation {
-            display: block;
-            padding: 12px 15px;
-            border-bottom: 1px solid var(--gray-medium);
-            text-decoration: none;
-            color: var(--gray-light);
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .conversation:hover,
-        .conversation.active {
-            background: var(--gray-dark);
-            color: var(--white);
-        }
-
-        /* Chat Window */
-        .chat-window {
-            width: 70%;
-            display: flex;
-            flex-direction: column;
-            background: var(--gray-dark);
-        }
-
-        .chat-header {
-            padding: 15px;
-            font-weight: bold;
-            background: var(--black);
-            border-bottom: 1px solid var(--gray-medium);
-            color: var(--white);
-        }
-
-        .chat-body {
-            flex: 1;
-            padding: 15px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        /* Message Bubbles */
-        .chat-bubble {
-            max-width: 60%;
-            padding: 10px 15px;
-            border-radius: 0;
-            position: relative;
-            word-wrap: break-word;
-            font-size: 14px;
-        }
-
-        .chat-bubble.sent {
-            background: var(--accent);
-            color: var(--white);
-            align-self: flex-end;
-        }
-
-        .chat-bubble.received {
-            background: var(--gray-medium);
-            color: var(--white);
-            align-self: flex-start;
-        }
-
-        .chat-time {
-            font-size: 11px;
-            color: var(--gray-light);
-            margin-top: 4px;
-            display: block;
-            text-align: right;
-        }
-
-        /* Chat Footer */
-        .chat-footer {
-            padding: 10px;
-            background: var(--black);
-            border-top: 1px solid var(--gray-medium);
-            display: flex;
-        }
-
-        .chat-footer textarea {
-            flex: 1;
-            resize: none;
-            border-radius: 0;
-            padding: 10px;
-            background: var(--gray-dark);
-            color: var(--white);
-            border: 1px solid var(--gray-medium);
-            outline: none;
-        }
-
-        .chat-footer button {
-            background: var(--accent);
-            color: white;
-            border: none;
-            border-radius: 0;
-            margin-left: 10px;
-            width: 40px;
-            height: 40px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
 
         /* Swiper customization - more specific selectors to override defaults */
         .property-images .swiper-pagination-bullet {
@@ -780,21 +629,7 @@
                 grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
             }
             
-            .chat-layout {
-                flex-direction: column;
-                height: auto;
-            }
-            
-            .chat-sidebar,
-            .chat-window {
-                width: 100%;
-            }
-            
-            .chat-sidebar {
-                height: 300px;
-                border-right: none;
-                border-bottom: 1px solid var(--gray-medium);
-            }
+           
         }
 
         @media (max-width: 768px) {
@@ -865,3 +700,143 @@
     background-color: var(--blue-light);
     border-color: var(--accent);
 }
+.status {
+    font-weight: bold;
+    padding: 5px 10px;
+    border-radius: 6px;
+}
+
+.status.approved {
+    color: #155724;
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+}
+
+.status.rejected {
+    color: #721c24;
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+}
+
+.status.pending {
+    color: #856404;
+    background: #fff3cd;
+    border: 1px solid #ffeeba;
+}
+/* Container for all approved tenants */
+.approved-tenants {
+    max-width: 900px;
+    margin: 2rem auto;
+    font-family: Arial, sans-serif;
+}
+
+/* Title */
+.approved-tenants h3 {
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+    color: #333;
+}
+
+/* Individual tenant card */
+.tenant-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 1px solid #e0e0e0;
+}
+
+/* Tenant name */
+.tenant-card h4 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    font-size: 1.4rem;
+    color: #222;
+}
+
+/* Email and other info */
+.tenant-card p {
+    margin: 6px 0;
+    font-size: 0.95rem;
+    color: #555;
+}
+
+/* Stars styling */
+.stars {
+    color: #ffc107; /* Airbnb-style yellow stars */
+    font-size: 18px;
+    margin-right: 5px;
+}
+
+/* Previous reviews section */
+.tenant-reviews {
+    margin-top: 15px;
+    border-top: 1px solid #eee;
+    padding-top: 10px;
+}
+
+/* Individual review card */
+.review-card {
+    background: #f9f9f9;
+    padding: 12px 15px;
+    margin-bottom: 10px;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+}
+
+/* Reviewer name in review card */
+.review-card p strong {
+    color: #333;
+}
+
+/* Review comment */
+.review-card p {
+    font-size: 0.9rem;
+    color: #444;
+}
+
+/* Date of review */
+.review-card small {
+    color: #888;
+    font-size: 0.8rem;
+}
+
+/* Form inside tenant card */
+.tenant-card form {
+    margin-top: 15px;
+}
+
+/* Form labels and selects */
+.tenant-card form label {
+    display: block;
+    margin: 6px 0 3px;
+    font-weight: bold;
+}
+
+.tenant-card form select,
+.tenant-card form textarea {
+    width: 100%;
+    padding: 6px 8px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+}
+
+/* Submit button */
+.tenant-card form button {
+    background: #28a745;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    padding: 8px 15px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: background 0.3s ease;
+}
+
+.tenant-card form button:hover {
+    background: #218838;
+}
+

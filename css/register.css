@@ -1,34 +1,39 @@
-/* styles.css */
+
+
 :root {
-    --black: #e98440 ;
-    --white: #FFFFFF;
-    --gray-dark: #1A1A1A;
-    --gray-medium: #333333;
-    --gray-light: #D9D9D9;
-    --accent: #FF3A00; /* Balenciaga orange-red accent */
+    --primary-color: #007bff;
+    --primary-hover: #0056b3;
+    --background-dark: #063970;
+    --text-light: #ffffff;
+    --error-bg: #ffe6e6;
+    --error-text: #cc0000;
+    --success-bg: #e6ffe6;
+    --success-text: #009900;
+    --input-border: #ccc;
+    --input-focus: #007bff;
+}
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      
     background: url('/assets/bg.jpg') no-repeat center center fixed;
     background-size: cover;
-   
     margin: 0;
     padding: 0;
 }
 
 .container {
-    background-color: #063970;
+    background-color: var(--background-dark);
     padding: 30px;
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     margin: auto;
+    color: var(--text-light);
 }
 
 h2 {
     text-align: center;
-    color: #ffff;
     margin-bottom: 20px;
+    color: var(--text-light);
 }
 
 form {
@@ -40,16 +45,15 @@ label {
     margin-top: 15px;
     margin-bottom: 5px;
     font-weight: bold;
-    color: #ffff;
 }
 
 input[type="text"],
 input[type="email"],
 input[type="password"],
-input[type="confirm_password"],
+input[type="number"],
 select {
     padding: 10px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--input-border);
     border-radius: 5px;
     font-size: 14px;
     transition: border-color 0.3s;
@@ -57,14 +61,14 @@ select {
 
 input:focus,
 select:focus {
-    border-color: #007bff;
+    border-color: var(--input-focus);
     outline: none;
 }
 
 button[type="submit"] {
     margin-top: 20px;
     padding: 12px;
-    background-color: #007bff;
+    background-color: var(--primary-color);
     color: white;
     border: none;
     border-radius: 5px;
@@ -74,7 +78,7 @@ button[type="submit"] {
 }
 
 button:hover {
-    background-color: #0056b3;
+    background-color: var(--primary-hover);
 }
 
 .message {
@@ -86,21 +90,58 @@ button:hover {
 }
 
 .message.error {
-    background-color: #ffe6e6;
-    color: #cc0000;
+    background-color: var(--error-bg);
+    color: var(--error-text);
 }
 
 .message.success {
-    background-color: #e6ffe6;
-    color: #009900;
+    background-color: var(--success-bg);
+    color: var(--success-text);
 }
 
 a {
-    color: #007bff;
+    color: var(--primary-color);
     text-decoration: none;
 }
 
 a:hover {
     text-decoration: underline;
 }
+
+/* Responsive tweaks */
+@media (max-width: 600px) {
+    .container {
+        padding: 20px;
+    }
+
+    input,
+    select,
+    button {
+        font-size: 15px;
+    }
 }
+#tenantFields {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+#tenantFields .form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+#tenantFields label {
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #fff;
+}
+
+#tenantFields input {
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+}
+

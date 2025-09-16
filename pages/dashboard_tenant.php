@@ -110,7 +110,8 @@ if (isset($_POST['apply_property_id'])) {
 
     if ($result->num_rows > 0) {
         $message = "❌ You have already applied for this property.";
-    } else {
+    } 
+    else {
         $stmt = $conn->prepare("INSERT INTO applications (tenant_id, property_id, status, date_applied) VALUES (?, ?, 'Pending', NOW())");
         $stmt->bind_param("ii", $tenant_id, $property_id);
         if ($stmt->execute()) {
@@ -398,7 +399,7 @@ $conversations = $conv_stmt->get_result();
  <h2>Welcome, <?php echo htmlspecialchars($full_name ?? "Tenant"); ?></h2>
 
     <div><a href="logout.php">Logout</a></div>
-</nav>
+ </nav>
  <div class="container">
     <?php if (!empty($message)): ?>
         <div class="alert <?php echo strpos($message, '✅') !== false ? 'success' : 'error'; ?>"><?php echo $message; ?></div>
@@ -410,13 +411,9 @@ $conversations = $conv_stmt->get_result();
             <button class="tab-button" data-tab="favorites">❤️ Favorites</button>
             <button class="tab-button" data-tab="applications">📄 My Applications</button>
             <button class="tab-button" data-tab="ratings">⭐ My Ratings</button>
-            <button class="tab-button" data-tab="messages">💬 Messages</button>
             <button class="tab-button" data-tab="profile">⚙ Edit Profile</button>
-            <?php if ($otherUserId > 0): ?>
-                <a href="messages.php?chat_with=<?php echo $otherUserId; ?>" class="btn-primary">💬 Messages</a>
-            <?php endif; ?>
-        </div>
-        
+            <a href="messages.php?chat_with=<?php echo $otherUserId; ?>" class="tab-button btn-primary">💬 Messages</a>
+        </div></div>
         <!-- Available Properties Tab -->
         <div id="available" class="tab-content active">
             <h2>Available Properties</h2>
@@ -515,7 +512,13 @@ $conversations = $conv_stmt->get_result();
                             <input type="hidden" name="apply_property_id" value="<?php echo htmlspecialchars($prop['property_id']); ?>">
                             <button type="submit" class="btn-primary">Apply</button>
                         </form>
-                        
+                        <!-- View Landlord Profile Button -->
+                        <a href="landlord_profile.php?landlord_id=<?php echo htmlspecialchars($prop['landlord_id']); ?>">
+                         View Landlord Profile</a>
+
+   
+</form>
+
                         <!-- Chat button to start conversation with landlord -->
                         <button class="btn-primary" onclick="startChatWithLandlord(
                             '<?php echo htmlspecialchars($prop['landlord_id']); ?>', 
@@ -599,37 +602,55 @@ $conversations = $conv_stmt->get_result();
         </div>
         
         <!-- Applications Tab -->
-        <div id="applications" class="tab-content">
-            <h2>Your Applications</h2>
-            <?php if ($applications->num_rows > 0): ?>
-            <table>
-                <tr>
-                    <th>Property</th>
-                    <th>Status</th>
-                    <th>Applied On</th>
-                    <th>Landlord Contact</th>
-                </tr>
-                <?php while($app = $applications->fetch_assoc()): ?>
-                <tr>
-                    <td><?php echo htmlspecialchars($app['property_title'] ?? 'Unknown Property'); ?></td>
-                    <td><?php echo htmlspecialchars($app['status'] ?? 'pending'); ?></td>
-                    <td><?php echo htmlspecialchars($app['date_applied'] ?? 'Date not available'); ?></td>
-                    <td>
-                        <?php if ($app['status'] === 'approved'): ?>
-                            <strong><?php echo htmlspecialchars($app['landlord_name']); ?></strong><br>
-                            📧 <?php echo htmlspecialchars($app['landlord_email']); ?><br>
-                            📞 <?php echo htmlspecialchars($app['landlord_phone']); ?>
-                        <?php else: ?>
-                            <em>Visible after approval</em>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-                <?php endwhile; ?>
-            </table>
-            <?php else: ?>
-                <p class="no-applications">You haven't applied to any properties yet.</p>
-            <?php endif; ?>
-        </div>
+      <div id="applications" class="tab-content">
+    <h2>Your Applications</h2>
+    <?php if ($applications->num_rows > 0): ?>
+    <table>
+        <tr>
+            <th>Property</th>
+            <th>Status</th>
+            <th>Applied On</th>
+            <th>Landlord Contact</th>
+        </tr>
+        <?php while($app = $applications->fetch_assoc()): ?>
+        <tr>
+            <td><?php echo htmlspecialchars($app['property_title'] ?? 'Unknown Property'); ?></td>
+            
+            <!-- STATUS BADGE -->
+            <td>
+                <?php 
+                    $status = $app['status'] ?? 'pending';
+                    if ($status === 'approved') {
+                        echo "<span class='status approved'>✅ Approved</span>";
+                    } elseif ($status === 'rejected') {
+                        echo "<span class='status rejected'>❌ Rejected</span>";
+                    } else {
+                        echo "<span class='status pending'>⏳ Pending</span>";
+                    }
+                ?>
+            </td>
+
+            <td><?php echo htmlspecialchars($app['date_applied'] ?? 'Date not available'); ?></td>
+
+            <td>
+                <?php if ($app['status'] === 'approved'): ?>
+                    <strong><?php echo htmlspecialchars($app['landlord_name']); ?></strong><br>
+                    📧 <?php echo htmlspecialchars($app['landlord_email']); ?><br>
+                    📞 <?php echo htmlspecialchars($app['landlord_phone']); ?>
+                <?php elseif ($app['status'] === 'rejected'): ?>
+                    <em>Your application was rejected</em>
+                <?php else: ?>
+                    <em>Visible after approval</em>
+                <?php endif; ?>
+            </td>
+        </tr>
+        <?php endwhile; ?>
+    </table>
+    <?php else: ?>
+        <p class="no-applications">You haven't applied to any properties yet.</p>
+    <?php endif; ?>
+</div>
+
         
         <!-- Ratings Tab -->
         <div id="ratings" class="tab-content">
@@ -725,90 +746,6 @@ $conversations = $conv_stmt->get_result();
                 <button type="submit" class="btn-primary">Update Profile</button>
             </form>
         </div>
- <div id="messages" class="tab-content">
-            <h2>Messages</h2>
-            
-            <div class="messages-container">
-                <div class="messages-sidebar">
-                    <div class="messages-sidebar-header">
-                        <h3>Conversations</h3>
-                    </div>
-                    
-                    <div class="messages-search">
-                        <input type="text" placeholder="Search conversations..." onkeyup="filterConversations()">
-                    </div>
-                    
-                    <div class="conversations-list">
-                        <?php if ($conversations->num_rows > 0): ?>
-                            <?php while($conv = $conversations->fetch_assoc()): 
-                                $initials = strtoupper(substr($conv['full_name'], 0, 2));
-                                $lastTime = !empty($conv['last_time']) ? date("M j, g:i A", strtotime($conv['last_time'])) : 'No messages';
-                            ?>
-                            <div class="conversation-item <?php echo $active_chat_user == $conv['other_user_id'] ? 'active' : ''; ?>" 
-                                 onclick="window.location.href='tenant_dashboard.php?tab=messages&chat_with=<?php echo $conv['other_user_id']; ?>'">
-                                <div class="conversation-avatar"><?php echo $initials; ?></div>
-                                <div class="conversation-info">
-                                    <div class="conversation-name"><?php echo htmlspecialchars($conv['full_name']); ?></div>
-                                    <div class="conversation-preview"><?php echo htmlspecialchars($conv['last_message'] ?? 'No messages yet'); ?></div>
-                                </div>
-                                <div class="conversation-meta">
-                                    <div class="conversation-time"><?php echo $lastTime; ?></div>
-                                    <?php if ($conv['unread_count'] > 0): ?>
-                                        <div class="unread-count"><?php echo $conv['unread_count']; ?></div>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                            <?php endwhile; ?>
-                        <?php else: ?>
-                            <div class="empty-chat">
-                                <p>No conversations yet</p>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
-                
-                <div class="messages-content">
-                    <?php if ($active_chat_user > 0 && !empty($chatPartnerName)): ?>
-                        <div class="messages-header">
-                            <div class="conversation-avatar"><?php echo strtoupper(substr($chatPartnerName, 0, 2)); ?></div>
-                            <div class="conversation-name"><?php echo htmlspecialchars($chatPartnerName); ?></div>
-                        </div>
-                        
-                        <div class="messages-body" id="messages-body">
-                            <?php if ($chat_messages && $chat_messages->num_rows > 0): ?>
-                                <?php while($msg = $chat_messages->fetch_assoc()): 
-                                    $isSent = $msg['sender_id'] == $tenant_id;
-                                    $time = date("g:i A", strtotime($msg['created_at']));
-                                ?>
-                                <div class="message <?php echo $isSent ? 'sent' : 'received'; ?>">
-                                    <div class="message-content">
-                                        <p><?php echo htmlspecialchars($msg['message_text']); ?></p>
-                                        <div class="message-time"><?php echo $time; ?></div>
-                                    </div>
-                                </div>
-                                <?php endwhile; ?>
-                            <?php else: ?>
-                                <div class="empty-chat">
-                                    <p>No messages yet. Start the conversation!</p>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                        
-                        <form method="POST" class="messages-input">
-                            <input type="text" name="message_text" placeholder="Type your message..." required>
-                            <button type="submit" name="send_message"><i class="fas fa-paper-plane"></i></button>
-                        </form>
-                    <?php else: ?>
-                        <div class="empty-chat">
-                            <p>Select a conversation to start chatting</p>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-
-
-
     </div>
 </div>
 
@@ -826,11 +763,6 @@ document.addEventListener('DOMContentLoaded', function() {
         tabContents.forEach(content => {
             content.classList.remove('active');
         });
-
-        
-        
-       
-
 
         // Show the selected tab content
         document.getElementById(tabName).classList.add('active');

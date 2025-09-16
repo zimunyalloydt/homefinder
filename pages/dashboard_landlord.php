@@ -2,7 +2,11 @@
 include(__DIR__ . '/../config/db_connect.php');
 session_start();
 
-
+// Redirect if not logged in or not landlord
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'landlord') {
+    header("Location: login.php");
+    exit();
+}
 $currentUserId = $_SESSION['user_id'];
 
 // find a tenant who applied
@@ -22,11 +26,8 @@ $row = $result->fetch_assoc();
 $otherUserId = $row['tenant_id'] ?? 0;
 
 
-// Redirect if not logged in or not landlord
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'landlord') {
-    header("Location: login.php");
-    exit();
-}
+
+
 
 $landlord_id = $_SESSION['user_id'];
 $full_name   = $_SESSION['full_name'];
@@ -285,6 +286,41 @@ if ($active_chat_user > 0) {
     $chat_messages = $chat_stmt->get_result();
 }
 
+// Fetch approved tenants for this landlord
+
+// Fetch approved tenants for this landlord via applications -> properties
+$approved_stmt = $conn->prepare("
+    SELECT a.tenant_id, u.full_name AS tenant_name, u.email
+    FROM applications a
+    JOIN users u ON a.tenant_id = u.user_id
+    JOIN properties p ON a.property_id = p.property_id
+    WHERE p.landlord_id = ? AND a.status = 'approved'
+");
+$approved_stmt->bind_param("i", $landlord_id);
+$approved_stmt->execute();
+$approved_tenants = $approved_stmt->get_result();
+
+
+
+// Fetch existing ratings by this landlord
+$tenant_ratings = [];
+$ratings_stmt = $conn->prepare("
+    SELECT tenant_id, rating, review
+    FROM tenant_ratings
+    WHERE landlord_id = ?
+");
+$ratings_stmt->bind_param("i", $landlord_id);
+$ratings_stmt->execute();
+$ratings_result = $ratings_stmt->get_result();
+
+while ($row = $ratings_result->fetch_assoc()) {
+    $tenant_ratings[$row['tenant_id']] = [
+        'rating' => $row['rating'],
+        'review' => $row['review']
+    ];
+}
+
+
 
 ?>
 
@@ -292,7 +328,9 @@ if ($active_chat_user > 0) {
 <html>
 <head>
     <title>Landlord Dashboard - HomeFinder</title>
-    <link rel="stylesheet" href="/../css/landlorddashboard.css">
+     <link rel="stylesheet" href="/../css/landlorddashboard.css">
+    <link rel="stylesheet" href="/../css/approved_tenant.css">
+   
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@8/swiper-bundle.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -313,7 +351,7 @@ if ($active_chat_user > 0) {
                 <?php echo htmlspecialchars($message); ?>
             </div>
         <?php endif; ?>
-<div class="tab-container">
+ <div class="tab-container">
     <div class="tab-buttons">
         <button class="tab-button active" onclick="openTab('properties')">My Properties</button>
         <button class="tab-button" onclick="openTab('add-property')">Add Property</button>
@@ -322,7 +360,8 @@ if ($active_chat_user > 0) {
         <?php if ($otherUserId > 0): ?>
             <a href="messages.php?chat_with=<?php echo $otherUserId; ?>" class="btn btn-primary">💬 Messages</a>
         <?php endif; ?>
-    </div></div>
+    </div>
+</div>
 
             <div id="properties" class="tab-content active">
                 <h3>Your Properties</h3>
@@ -382,9 +421,7 @@ if ($active_chat_user > 0) {
                                         <a href="delete_property.php?id=<?php echo $property['property_id']; ?>" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this property?');">
                                             <i class="fas fa-trash"></i> Delete
                                         </a>
-                                        <a href="manage_images.php?id=<?php echo $property['property_id']; ?>" class="btn btn-info">
-                                            <i class="fas fa-images"></i> Manage Images
-                                        </a>
+                                        
                                     </div>
                                 </div>
                             </div>
@@ -518,6 +555,9 @@ if ($active_chat_user > 0) {
                                     <p><strong>📞 Phone:</strong> <a href="tel:<?php echo htmlspecialchars($app['phone']); ?>"><?php echo htmlspecialchars($app['phone']); ?></a></p>
                                     <p><strong>👨‍👩‍👧‍👦 Family Size:</strong> <?php echo htmlspecialchars($app['family_size'] ?? 'N/A'); ?></p>
                                     <p><strong>💼 Profession:</strong> <?php echo htmlspecialchars($app['profession'] ?? 'N/A'); ?></p>
+                                    <a href="tenant_profile.php?tenant_id=<?php echo $app['tenant_id']; ?>"class="btn btn-primary"><i class="fas fa-user"></i> View Tenant Profile</a>
+
+                                    
                                 </div>
                                 
                                 <?php if (!empty($app['additional_info'])): ?>
@@ -557,6 +597,8 @@ if ($active_chat_user > 0) {
                                         <a href="mailto:<?php echo htmlspecialchars($app['email']); ?>" class="btn btn-info">
                                             <i class="fas fa-envelope"></i> Email
                                         </a>
+                                        
+
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -568,92 +610,190 @@ if ($active_chat_user > 0) {
             </div>
 
            <div id="ratings" class="tab-content">
-                <h3>My Ratings & Reviews</h3>
-                
-                <div class="rating-summary">
-                    <div class="rating-card">
-                        <h4>Landlord Rating</h4>
-                        <div class="rating-value"><?php echo number_format($avg_landlord_rating['avg_rating'] ?? 0, 1); ?></div>
-                        <div class="rating-stars">
-                            <?php
-                            $avg_rating = $avg_landlord_rating['avg_rating'] ?? 0;
-                            for ($i = 1; $i <= 5; $i++): 
-                                if ($i <= floor($avg_rating)): ?>
-                                    <i class="fas fa-star"></i>
-                                <?php elseif ($i == ceil($avg_rating) && fmod($avg_rating, 1) > 0): ?>
-                                    <i class="fas fa-star-half-alt"></i>
-                                <?php else: ?>
-                                    <i class="far fa-star"></i>
-                                <?php endif;
-                            endfor; ?>
-                        </div>
-                        <div class="rating-count">Based on <?php echo $avg_landlord_rating['total_reviews'] ?? 0; ?> reviews</div>
-                    </div>
-                    
-                    <div class="rating-card">
-                        <h4>Properties Rating</h4>
-                        <div class="rating-value"><?php echo number_format($avg_properties_rating['avg_rating'] ?? 0, 1); ?></div>
-                        <div class="rating-stars">
-                            <?php
-                            $avg_prop_rating = $avg_properties_rating['avg_rating'] ?? 0;
-                            for ($i = 1; $i <= 5; $i++): 
-                                if ($i <= floor($avg_prop_rating)): ?>
-                                    <i class="fas fa-star"></i>
-                                <?php elseif ($i == ceil($avg_prop_rating) && fmod($avg_prop_rating, 1) > 0): ?>
-                                    <i class="fas fa-star-half-alt"></i>
-                                <?php else: ?>
-                                    <i class="far fa-star"></i>
-                                <?php endif;
-                            endfor; ?>
-                        </div>
-                        <div class="rating-count">Based on <?php echo $avg_properties_rating['total_reviews'] ?? 0; ?> reviews</div>
-                    </div>
-                </div>
-                
-                <div class="ratings-list">
-                    <h4>All Reviews</h4>
-                    
-                    <?php if (count($ratings) > 0): ?>
-                        <?php foreach ($ratings as $rating): ?>
-                            <div class="rating-item">
-                                <div class="rating-item-header">
-                                    <div>
-                                        <strong><?php echo htmlspecialchars($rating['reviewer_name']); ?></strong>
-                                        <span class="rating-stars">
-                                            <?php for ($i = 1; $i <= 5; $i++): ?>
-                                                <i class="<?php echo $i <= $rating['rating'] ? 'fas' : 'far'; ?> fa-star"></i>
-                                            <?php endfor; ?>
-                                        </span>
-                                    </div>
-                                    <span class="rating-item-type">
-                                        <?php echo $rating['target_type'] === 'landlord' ? 'Landlord Review' : 'Property Review'; ?>
-                                    </span>
-                                </div>
-                                
-                                <?php if ($rating['target_type'] === 'property' && !empty($rating['property_title'])): ?>
-                                    <div class="rating-item-property">
-                                        For property: <?php echo htmlspecialchars($rating['property_title']); ?>
-                                    </div>
-                                <?php endif; ?>
-                                
-                                <div class="rating-item-date">
-                                    <?php echo date('F j, Y', strtotime($rating['created_at'])); ?>
-                                </div>
-                                
-                                <?php if (!empty($rating['review'])): ?>
-                                    <div class="rating-item-comment">
-                                        <?php echo nl2br(htmlspecialchars($rating['review'])); ?>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-                        <?php endforeach; ?>
+    <h3>My Ratings & Reviews</h3>
+    
+    <!-- Existing Rating Summary -->
+    <div class="rating-summary">
+        <div class="rating-card">
+            <h4>Landlord Rating</h4>
+            <div class="rating-value"><?php echo number_format($avg_landlord_rating['avg_rating'] ?? 0, 1); ?></div>
+            <div class="rating-stars">
+                <?php
+                $avg_rating = $avg_landlord_rating['avg_rating'] ?? 0;
+                for ($i = 1; $i <= 5; $i++): 
+                    if ($i <= floor($avg_rating)): ?>
+                        <i class="fas fa-star"></i>
+                    <?php elseif ($i == ceil($avg_rating) && fmod($avg_rating, 1) > 0): ?>
+                        <i class="fas fa-star-half-alt"></i>
                     <?php else: ?>
-                        <p>No ratings yet. You'll see reviews from tenants here once they rate you or your properties.</p>
+                        <i class="far fa-star"></i>
+                    <?php endif;
+                endfor; ?>
+            </div>
+            <div class="rating-count">Based on <?php echo $avg_landlord_rating['total_reviews'] ?? 0; ?> reviews</div>
+        </div>
+        
+        <div class="rating-card">
+            <h4>Properties Rating</h4>
+            <div class="rating-value"><?php echo number_format($avg_properties_rating['avg_rating'] ?? 0, 1); ?></div>
+            <div class="rating-stars">
+                <?php
+                $avg_prop_rating = $avg_properties_rating['avg_rating'] ?? 0;
+                for ($i = 1; $i <= 5; $i++): 
+                    if ($i <= floor($avg_prop_rating)): ?>
+                        <i class="fas fa-star"></i>
+                    <?php elseif ($i == ceil($avg_prop_rating) && fmod($avg_prop_rating, 1) > 0): ?>
+                        <i class="fas fa-star-half-alt"></i>
+                    <?php else: ?>
+                        <i class="far fa-star"></i>
+                    <?php endif;
+                endfor; ?>
+            </div>
+            <div class="rating-count">Based on <?php echo $avg_properties_rating['total_reviews'] ?? 0; ?> reviews</div>
+        </div>
+    </div>
+    
+    <!-- Existing Reviews List -->
+    <div class="ratings-list">
+        <h4>All Reviews</h4>
+        <?php if (count($ratings) > 0): ?>
+            <?php foreach ($ratings as $rating): ?>
+                <div class="rating-item">
+                    <div class="rating-item-header">
+                        <div>
+                            <strong><?php echo htmlspecialchars($rating['reviewer_name']); ?></strong>
+                            <span class="rating-stars">
+                                <?php for ($i = 1; $i <= 5; $i++): ?>
+                                    <i class="<?php echo $i <= $rating['rating'] ? 'fas' : 'far'; ?> fa-star"></i>
+                                <?php endfor; ?>
+                            </span>
+                        </div>
+                        <span class="rating-item-type">
+                            <?php echo $rating['target_type'] === 'landlord' ? 'Landlord Review' : 'Property Review'; ?>
+                        </span>
+                    </div>
+                    
+                    <?php if ($rating['target_type'] === 'property' && !empty($rating['property_title'])): ?>
+                        <div class="rating-item-property">
+                            For property: <?php echo htmlspecialchars($rating['property_title']); ?>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <div class="rating-item-date">
+                        <?php echo date('F j, Y', strtotime($rating['created_at'])); ?>
+                    </div>
+                    
+                    <?php if (!empty($rating['review'])): ?>
+                        <div class="rating-item-comment">
+                            <?php echo nl2br(htmlspecialchars($rating['review'])); ?>
+                        </div>
                     <?php endif; ?>
                 </div>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <p>No ratings yet. You'll see reviews from tenants here once they rate you or your properties.</p>
+        <?php endif; ?>
+    </div>
+
+    <!-- New Approved Tenants Rating Feature -->
+    <div>
+
+<div class="approved-tenants">
+    <h3>Approved Tenants</h3>
+
+    <?php if (!empty($approved_tenants) && $approved_tenants->num_rows > 0): ?>
+        <?php 
+        // Initialize $tenant_ratings if it's not set
+        if (!isset($tenant_ratings)) {
+            $tenant_ratings = [];
+        }
+
+        while ($tenant = $approved_tenants->fetch_assoc()): 
+            $tenant_id = $tenant['tenant_id'] ?? null;
+            $tenant_name = $tenant['tenant_name'] ?? 'Unknown Tenant';
+            $tenant_email = $tenant['email'] ?? 'N/A';
+
+            $tenant_rating = $tenant_ratings[$tenant_id]['rating'] ?? 0;
+            $tenant_review = $tenant_ratings[$tenant_id]['review'] ?? '';
+
+            // Fetch all previous reviews for this tenant
+            $reviews_stmt = $conn->prepare("
+                SELECT r.rating, r.review, u.full_name AS reviewer_name, r.created_at
+                FROM tenant_ratings r
+                JOIN users u ON r.landlord_id = u.user_id
+                WHERE r.tenant_id = ?
+                ORDER BY r.created_at DESC
+            ");
+            $reviews_stmt->bind_param("i", $tenant_id);
+            $reviews_stmt->execute();
+            $reviews_result = $reviews_stmt->get_result();
+        ?>
+            <div class="tenant-card">
+                <h4><?php echo htmlspecialchars($tenant_name); ?></h4>
+                <p><strong>Email:</strong> <?php echo htmlspecialchars($tenant_email); ?></p>
+
+                <!-- Display current rating -->
+                <p><strong>Current Rating:</strong>
+                    <span class="stars">
+                        <?php 
+                        for ($i=1; $i<=5; $i++) {
+                            echo $i <= $tenant_rating ? '★' : '☆';
+                        }
+                        ?>
+                    </span>
+                    (<?php echo $tenant_rating; ?>/5)
+                </p>
+
+                <!-- Display previous reviews -->
+                <?php if ($reviews_result->num_rows > 0): ?>
+                    <div class="tenant-reviews">
+                        <h5>Previous Reviews:</h5>
+                        <?php while($r = $reviews_result->fetch_assoc()): ?>
+                            <div class="review-card">
+                                <p><strong>Reviewer:</strong> <?php echo htmlspecialchars($r['reviewer_name']); ?></p>
+                                <p><strong>Rating:</strong>
+                                    <span class="stars">
+                                        <?php
+                                        for ($i=1; $i<=5; $i++) {
+                                            echo $i <= $r['rating'] ? '★' : '☆';
+                                        }
+                                        ?>
+                                    </span>
+                                    (<?php echo $r['rating']; ?>/5)
+                                </p>
+                                <p><strong>Comment:</strong> <?php echo nl2br(htmlspecialchars($r['review'])); ?></p>
+                                <p><small><?php echo date('M j, Y', strtotime($r['created_at'])); ?></small></p>
+                            </div>
+                        <?php endwhile; ?>
+                    </div>
+                <?php else: ?>
+                    <p>No previous reviews.</p>
+                <?php endif; ?>
+
+                <!-- Rating form -->
+                <form method="POST" action="rate_tenant.php">
+                    <input type="hidden" name="tenant_id" value="<?php echo $tenant_id; ?>">
+
+                    <label>Update Rating:</label>
+                    <select name="rating" required>
+                        <?php for ($i=1; $i<=5; $i++): ?>
+                            <option value="<?php echo $i; ?>" <?php echo $i == $tenant_rating ? 'selected' : ''; ?>>
+                                <?php echo $i; ?> Star<?php echo $i > 1 ? 's' : ''; ?>
+                            </option>
+                        <?php endfor; ?>
+                    </select>
+
+                    <label>Comment:</label>
+                    <textarea name="review" rows="3" placeholder="Optional comment"><?php echo htmlspecialchars($tenant_review); ?></textarea>
+
+                    <button type="submit">Submit Rating</button>
+                </form>
             </div>
-        </div>
-            
+        <?php endwhile; ?>
+    <?php else: ?>
+        <p>No approved tenants yet.</p>
+    <?php endif; ?>
+</div>
 
     <script src="https://cdn.jsdelivr.net/npm/swiper@8/swiper-bundle.min.js"></script>
     <script>
