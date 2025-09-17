@@ -71,6 +71,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['title'])) {
 
         $property_id = $conn->insert_id;
 
+        
+          $_POST = [];
+
+
+
         // Handle multiple image uploads
         if (!empty($_FILES["images"]["name"][0])) {
             $targetDir = "../uploads/";

@@ -434,8 +434,8 @@ $conversations = $conv_stmt->get_result();
                                 <option value="all" <?php echo $type_filter === 'all' ? 'selected' : ''; ?>>All Types</option>
                                 <option value="House" <?php echo $type_filter === 'House' ? 'selected' : ''; ?>>House</option>
                                 <option value="Apartment" <?php echo $type_filter === 'Apartment' ? 'selected' : ''; ?>>Apartment</option>
-                                <option value="Condo" <?php echo $type_filter === 'Condo' ? 'selected' : ''; ?>>Condo</option>
-                                <option value="Townhouse" <?php echo $type_filter === 'Townhouse' ? 'selected' : ''; ?>>Townhouse</option>
+                                <option value="Room" <?php echo $type_filter === 'Room' ? 'selected' : ''; ?>>Room</option>
+                                <option value="Cottage" <?php echo $type_filter === 'Cottage' ? 'selected' : ''; ?>>Cottage</option>
                             </select>
                         </div>
                         
@@ -462,9 +462,10 @@ $conversations = $conv_stmt->get_result();
                     </div>
                     
                     <div class="filter-buttons">
-                        <button type="submit" class="btn-apply">Apply Filters</button>
-                        <button type="button" class="btn-reset" onclick="resetFilters()">Reset</button>
-                    </div>
+    <button type="submit" class="btn btn-apply">Apply Filters</button>
+    <button type="button" class="btn btn-reset" onclick="resetFilters()">Reset</button>
+</div>
+
                 </form>
             </div>
             
@@ -510,29 +511,27 @@ $conversations = $conv_stmt->get_result();
                         
                         <form method="POST" style="margin-bottom:5px;">
                             <input type="hidden" name="apply_property_id" value="<?php echo htmlspecialchars($prop['property_id']); ?>">
-                            <button type="submit" class="btn-primary">Apply</button>
+                            <button type="submit" class=" btn btn-primary">Apply</button>
                         </form>
-                        <!-- View Landlord Profile Button -->
-                        <a href="landlord_profile.php?landlord_id=<?php echo htmlspecialchars($prop['landlord_id']); ?>">
-                         View Landlord Profile</a>
+                       <!-- View Landlord Profile Button -->
+<a href="landlord_profile.php?landlord_id=<?php echo htmlspecialchars($prop['landlord_id']); ?>" 
+   class="btn btn-profile">
+   View Landlord Profile
+</a>
 
-   
-</form>
+<!-- Actions -->
+<div class="action-buttons">
+    <a href="rate_property.php?property_id=<?php echo htmlspecialchars($prop['property_id']); ?>" 
+       class="btn btn-rate-property">
+       ⭐ Rate Property
+    </a>
 
-                        <!-- Chat button to start conversation with landlord -->
-                        <button class="btn-primary" onclick="startChatWithLandlord(
-                            '<?php echo htmlspecialchars($prop['landlord_id']); ?>', 
-                            '<?php echo htmlspecialchars($prop['landlord_name']); ?>',
-                            '<?php echo htmlspecialchars($prop['property_id']); ?>',
-                            '<?php echo htmlspecialchars($prop['title']); ?>'
-                        )" style="margin: 0 1rem 1rem;">
-                            Chat with Landlord
-                        </button>
-                        
-                        <div style="display: flex; gap: 10px;">
-                            <a href="rate_property.php?property_id=<?php echo htmlspecialchars($prop['property_id']); ?>" style="font-size: 14px;">Rate Property</a>
-                            <a href="rate_landlord.php?landlord_id=<?php echo htmlspecialchars($prop['landlord_id']); ?>&property_id=<?php echo htmlspecialchars($prop['property_id']); ?>" style="font-size: 14px;">Rate Landlord</a>
-                        </div>
+    <a href="rate_landlord.php?landlord_id=<?php echo htmlspecialchars($prop['landlord_id']); ?>&property_id=<?php echo htmlspecialchars($prop['property_id']); ?>" 
+       class="btn btn-rate-landlord">
+       🏠 Rate Landlord
+    </a>
+</div>
+
                     </div>
                     <?php endwhile; ?>
                 <?php else: ?>

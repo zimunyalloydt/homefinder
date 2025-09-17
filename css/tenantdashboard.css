@@ -54,6 +54,18 @@ p {
   margin-bottom: 1rem;
 }
 
+/* ===== BASE LINK STYLES ===== */
+a {
+  color: var(--primary-dark);
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+a:hover {
+  color: var(--secondary-dark);
+  text-decoration: underline;
+}
+
 /* ===== NAVIGATION ===== */
 nav {
   background: var(--primary-gradient);
@@ -87,6 +99,7 @@ nav a {
 nav a:hover {
   background: var(--bg-white);
   color: var(--primary-dark);
+  text-decoration: none;
 }
 
 /* ===== LAYOUT ===== */
@@ -159,13 +172,17 @@ nav a:hover {
   transition: var(--transition);
   border-bottom: 3px solid transparent;
   text-decoration: none;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   position: relative;
+  font-family: inherit;
 }
 
 .tab-button:hover {
   color: var(--text-primary);
   background: rgba(255, 255, 255, 0.5);
+  text-decoration: none;
 }
 
 .tab-button.active {
@@ -271,50 +288,66 @@ nav a:hover {
 }
 
 /* ===== BUTTONS ===== */
+/* ===== Base Button ===== */
+/* ===== Base Button ===== */
 .btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: 500;
-  transition: var(--transition);
+  display: inline-block;
+  padding: 0.75rem 1.5rem;   /* bigger padding */
+  border-radius: 10px;
+  font-size: 16px;           /* larger text */
+  font-weight: 600;
   text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+  text-align: center;
+  min-width: 140px;          /* ensures all buttons look balanced */
 }
 
+/* Focus effect */
+.btn:focus {
+  outline: 2px solid var(--primary-dark);
+  outline-offset: 3px;
+}
+
+/* ===== Variants ===== */
+
+/* Primary button */
 .btn-primary {
   background: var(--primary-gradient);
   color: var(--bg-white);
 }
-
 .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
+  background: var(--primary-dark);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.15);
+  color: var(--bg-white);
 }
 
+/* Apply (green) */
 .btn-apply {
   background: #28a745;
   color: var(--bg-white);
 }
-
 .btn-apply:hover {
   background: #218838;
-  transform: translateY(-1px);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.15);
 }
 
+/* Reset (red) */
 .btn-reset {
-  background: var(--text-secondary);
+  background: #dc3545;
   color: var(--bg-white);
 }
-
 .btn-reset:hover {
-  background: var(--text-light);
-  transform: translateY(-1px);
+  background: #c82333;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.15);
 }
+
+
 
 /* ===== GRID LAYOUT ===== */
 .grid-3 {
@@ -401,6 +434,13 @@ nav a:hover {
   padding: 0 1.25rem 1.25rem;
 }
 
+/* Card action buttons */
+.property-card .btn {
+  width: 100%;
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
 /* Favorite Button */
 .favorite-form {
   position: absolute;
@@ -466,6 +506,13 @@ tr {
 
 tr:hover {
   background: #f1f5f9;
+}
+
+/* Table action buttons */
+table .btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  margin-right: 0.5rem;
 }
 
 /* ===== RATINGS ===== */
@@ -568,6 +615,13 @@ tr:hover {
   line-height: 1.5;
 }
 
+/* Form submit buttons */
+.form-actions {
+  margin-top: 2rem;
+  display: flex;
+  gap: 1rem;
+}
+
 /* ===== EMPTY STATES ===== */
 .no-results, .no-favorites, .no-applications, .no-ratings {
   text-align: center;
@@ -583,6 +637,11 @@ tr:hover {
   margin-bottom: 1rem;
   color: var(--text-secondary);
   font-weight: 600;
+}
+
+/* Empty state buttons */
+.no-results .btn, .no-favorites .btn, .no-applications .btn, .no-ratings .btn {
+  margin-top: 1.5rem;
 }
 
 /* ===== RESPONSIVE DESIGN ===== */
@@ -632,6 +691,11 @@ tr:hover {
     padding: 0 1rem;
     margin: 1.5rem auto;
   }
+  
+  /* Stack buttons on mobile */
+  .filter-buttons, .form-actions {
+    flex-direction: column;
+  }
 }
 
 @media (max-width: 480px) {
@@ -647,7 +711,7 @@ tr:hover {
     margin-bottom: 1.25rem;
   }
   
-  .filter-buttons {
+  .filter-buttons, .form-actions {
     flex-direction: column;
   }
   
@@ -662,3 +726,89 @@ tr:hover {
 .mt-2 { margin-top: 2rem; }
 .hidden { display: none; }
 .visible { display: block; }
+
+/* ===== LINK BUTTONS ===== */
+/* Style for links that look like buttons */
+a.btn {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+a.btn:hover {
+  text-decoration: none;
+  color: var(--bg-white);
+}
+
+/* Specific styles for button-like links */
+a.btn-primary {
+  background: var(--primary-gradient);
+  color: var(--bg-white);
+  border: none;
+}
+
+a.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  color: var(--bg-white);
+}
+
+/* Inline text links that aren't buttons */
+.text-link {
+  color: var(--primary-dark);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.text-link:hover {
+  color: var(--secondary-dark);
+}
+/* General Button Style */
+.btn {
+  display: inline-block;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+/* Profile button */
+.btn-profile {
+  background: var(--primary-gradient);
+  color: #fff;
+}
+.btn-profile:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+}
+
+/* Rate property button */
+.btn-rate-property {
+  background: #28a745;
+  color: #fff;
+}
+.btn-rate-property:hover {
+  background: #218838;
+  transform: translateY(-2px);
+}
+
+/* Rate landlord button */
+.btn-rate-landlord {
+  background: #fd7e14;
+  color: #fff;
+}
+.btn-rate-landlord:hover {
+  background: #e8590c;
+  transform: translateY(-2px);
+}
+
+/* Align buttons */
+.action-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 0.8rem;
+}
